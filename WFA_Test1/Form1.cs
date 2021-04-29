@@ -290,6 +290,8 @@ namespace WFA_Test1
         private void LowGraph_CheckedChanged(object sender, EventArgs e)
         {
             _lowGraphics = LowGraph.Checked;
+            if(_lowGraphics)
+                SetupBackGroundColor();
         }
 
         #endregion
