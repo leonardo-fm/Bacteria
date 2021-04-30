@@ -16,16 +16,16 @@ namespace WFA_Test1
         private byte _lifePointToDuplicate = 4;
         private byte _lifePointIdle = 2;
 
-        private byte _minLife = 4;
+        private byte _minLife = 3;
         private byte _maxLife = 8;
         private float _lifeNearestCombo = 0.5f;
 
         private byte _duplicationChance = 40;
-        private byte _timeOfDuplications = 4;
+        private byte _timeOfDuplications = 1;
 
         private byte _maxTimeBeforeFertilization = 30;
         private byte _minTimeBeforeFertilization =  5;
-        private byte _fertilizationChance = 50;
+        private byte _fertilizationChance = 40;
         
         private bool _lowGraphics = false;
 
