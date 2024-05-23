@@ -2,30 +2,29 @@
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
-using System.Xml;
 
-namespace WFA_Test1
+namespace Bacteria
 {
-    public partial class Form1 : Form
+    public partial class MainWindow : Form
     {
         private bool _gameIsStopped = false;
 
-        private const short CanvasSize = 600;
-        private const short CanvasSizeForLoop = 599;
+        private const int CanvasSize = 600;
+        private const int CanvasSizeForLoop = 599;
 
-        private byte _lifePointToDuplicate = 4;
-        private byte _lifePointIdle = 2;
+        private int _lifePointToDuplicate = 4;
+        private int _lifePointIdle = 2;
 
-        private byte _minLife = 3;
-        private byte _maxLife = 8;
-        private float _lifeNearestCombo = 0.5f;
+        private int _minLife = 3;
+        private int _maxLife = 8;
+        private double _lifeNearestCombo = 0.5f;
 
-        private byte _duplicationChance = 40;
-        private byte _timeOfDuplications = 1;
+        private int _duplicationChance = 40;
+        private int _timeOfDuplications = 1;
 
-        private byte _maxTimeBeforeFertilization = 30;
-        private byte _minTimeBeforeFertilization =  5;
-        private byte _fertilizationChance = 40;
+        private int _maxTimeBeforeFertilization = 30;
+        private int _minTimeBeforeFertilization =  5;
+        private int _fertilizationChance = 40;
         
         private bool _lowGraphics = false;
 
@@ -37,10 +36,10 @@ namespace WFA_Test1
         private readonly Bitmap _bitmap = new Bitmap(CanvasSize, CanvasSize);
         private readonly Random _rnd = new Random();
 
-        private short[,] _bacteriasStatusOne = new short[CanvasSize, CanvasSize];
-        private short[,] _bacteriasStatusTwo = new short[CanvasSize, CanvasSize];
+        private int[,] _bacteriasStatusOne = new int[CanvasSize, CanvasSize];
+        private int[,] _bacteriasStatusTwo = new int[CanvasSize, CanvasSize];
 
-        public Form1()
+        public MainWindow()
         {
             InitializeComponent();
             SetupBackGroundColor();
@@ -50,9 +49,9 @@ namespace WFA_Test1
 
         private void SetupBackGroundColor()
         {
-            for (short x = 0; x < CanvasSizeForLoop; x++)
+            for (int x = 0; x < CanvasSizeForLoop; x++)
             {
-                for (short y = 0; y < CanvasSizeForLoop; y++)
+                for (int y = 0; y < CanvasSizeForLoop; y++)
                 {
                     _bitmap.SetPixel(x, y, _bgColor);
                 }
@@ -82,14 +81,14 @@ namespace WFA_Test1
             EvolveBacteria();
         }
 
-        private short _bacteriasNumber = 0; 
+        private int _bacteriasNumber = 0; 
         private void EvolveBacteria()
         {
             _bacteriasNumber = 0;
             
-            for (short x = 0; x < CanvasSizeForLoop; x++)
+            for (int x = 0; x < CanvasSizeForLoop; x++)
             {
-                for (short y = 0; y < CanvasSizeForLoop; y++)
+                for (int y = 0; y < CanvasSizeForLoop; y++)
                 {
                     if (_bacteriasStatusOne[x, y] == 0) continue;
 
@@ -106,20 +105,20 @@ namespace WFA_Test1
             Canvas.Image = _bitmap;
             NumOfBacterias.Text = _bacteriasNumber.ToString();
             
-            _bacteriasStatusOne = (short[,]) _bacteriasStatusTwo.Clone();
-            _bacteriasStatusTwo = (short[,]) _bacteriasStatusOne.Clone();
+            _bacteriasStatusOne = (int[,]) _bacteriasStatusTwo.Clone();
+            _bacteriasStatusTwo = (int[,]) _bacteriasStatusOne.Clone();
         }
 
-        private void Fertilize(short x, short y)
+        private void Fertilize(int x, int y)
         {
             _intHolder = _rnd.Next(0, 100) < _fertilizationChance ? 1 : 0;
-            _bacteriasStatusTwo[x, y] += (short) _intHolder;
+            _bacteriasStatusTwo[x, y] += (int) _intHolder;
 
             if(!_lowGraphics)
                 _bitmap.SetPixel(x, y, GetColorInterpolation(_bacteriasStatusTwo[x, y]));
         }
 
-        private Color GetColorInterpolation(short levelOfFertilization)
+        private Color GetColorInterpolation(int levelOfFertilization)
         {
             return Color.FromArgb
             (
@@ -129,13 +128,13 @@ namespace WFA_Test1
             );
         }
 
-        private short GetProportion(float num1, float num2, float num3)
+        private int GetProportion(double num1, double num2, double num3)
         {
             var result = num3 * (num2 / num1);
-            return (short) result;
+            return (int) result;
         }
 
-        private void Duplicate(short x, short y)
+        private void Duplicate(int x, int y)
         {
             var nearestTiles = GetNearestTiles(x, y);
             ShuffleTiles(nearestTiles);
@@ -151,8 +150,8 @@ namespace WFA_Test1
                     if(duplicationNumber == 0) continue;
                     duplicationNumber -= 1;
                     
-                    float lifeBonus = 1;
-                    for (byte b = 0; b < nearestTiles.GetLength(0); b++)
+                    double lifeBonus = 1;
+                    for (int b = 0; b < nearestTiles.GetLength(0); b++)
                     {
                         if (nearestTiles[b, 0] != -1 && nearestTiles[b, 1] != -1)
                         {
@@ -162,7 +161,7 @@ namespace WFA_Test1
                     }
 
                     _bacteriasStatusTwo[nearestTiles[i, 0], nearestTiles[i, 1]] =
-                        (short) (_rnd.Next(_minLife, _maxLife) * lifeBonus);
+                        (int) (_rnd.Next(_minLife, _maxLife) * lifeBonus);
 
                     _bacteriasNumber++;
 
@@ -178,47 +177,47 @@ namespace WFA_Test1
         }
 
         private int _intHolder;
-        short[,] _initialTiles = new short[4, 2];
+        int[,] _initialTiles = new int[4, 2];
 
-        private short[,] GetNearestTiles(short x, short y)
+        private int[,] GetNearestTiles(int x, int y)
         {
             _initialTiles[0, 0] = x;
             _intHolder = y + 1 >= CanvasSize ? -1 : y + 1;
-            _initialTiles[0, 1] = (short) _intHolder;
+            _initialTiles[0, 1] = (int) _intHolder;
 
             _intHolder = x + 1 >= CanvasSize ? -1 : x + 1;
-            _initialTiles[1, 0] = (short) _intHolder;
+            _initialTiles[1, 0] = (int) _intHolder;
             _initialTiles[1, 1] = y;
 
             _initialTiles[2, 0] = x;
             _intHolder = y - 1 < 0 ? -1 : y - 1;
-            _initialTiles[2, 1] = (short) _intHolder;
+            _initialTiles[2, 1] = (int) _intHolder;
 
             _intHolder = x - 1 < 0 ? -1 : x - 1;
-            _initialTiles[3, 0] = (short) _intHolder;
+            _initialTiles[3, 0] = (int) _intHolder;
             _initialTiles[3, 1] = y;
 
             return _initialTiles;
         }
         
-        byte _initialIndex;
-        byte _finalIndex;
+        int _initialIndex;
+        int _finalIndex;
 
-        short _tempX;
-        short _tempY;
+        int _tempX;
+        int _tempY;
         
-        private void ShuffleTiles(short[,] tileToShuffle)
+        private void ShuffleTiles(int[,] tileToShuffle)
         {
-            byte arrayLength = (byte) tileToShuffle.GetLength(0);
+            int arrayLength = (int) tileToShuffle.GetLength(0);
             if(arrayLength == 1) return;
             
-            for (byte i = 0; i < arrayLength; i++)
+            for (int i = 0; i < arrayLength; i++)
             {
-                _initialIndex = (byte) _rnd.Next(0, arrayLength);
+                _initialIndex = (int) _rnd.Next(0, arrayLength);
                 
                 do
                 {
-                    _finalIndex = (byte) _rnd.Next(0, arrayLength);
+                    _finalIndex = (int) _rnd.Next(0, arrayLength);
                 } 
                 while (_finalIndex == _initialIndex);
 
@@ -233,9 +232,9 @@ namespace WFA_Test1
             }
         }
 
-        private void Dead(short x, short y)
+        private void Dead(int x, int y)
         {
-            _bacteriasStatusTwo[x, y] = (short) - _rnd.Next(_minTimeBeforeFertilization, _maxTimeBeforeFertilization);
+            _bacteriasStatusTwo[x, y] = (int) - _rnd.Next(_minTimeBeforeFertilization, _maxTimeBeforeFertilization);
             _bitmap.SetPixel(x, y, _deadColorTo);
         }
         
@@ -248,7 +247,7 @@ namespace WFA_Test1
             var positionY = MousePosition.Y - Top - 31;
 
             if (positionX >= 0 && positionX < CanvasSize && positionY >= 0 && positionY < CanvasSize)
-                _bacteriasStatusOne[positionX, positionY] = (short) _rnd.Next(_minLife, _maxLife);
+                _bacteriasStatusOne[positionX, positionY] = (int) _rnd.Next(_minLife, _maxLife);
         }
 
         private void btnReset_Click(object sender, EventArgs e)
@@ -256,8 +255,8 @@ namespace WFA_Test1
             if (_gameIsStopped) return;
 
             Update.Stop();
-            _bacteriasStatusOne = new short[CanvasSize, CanvasSize];
-            _bacteriasStatusTwo = (short[,]) _bacteriasStatusOne.Clone();
+            _bacteriasStatusOne = new int[CanvasSize, CanvasSize];
+            _bacteriasStatusTwo = (int[,]) _bacteriasStatusOne.Clone();
             SetupBackGroundColor();
             Update.Start();
 
@@ -302,28 +301,28 @@ namespace WFA_Test1
         {
             if (e.KeyCode == Keys.Enter)
                 if (int.TryParse(LifeForDuplication.Text, out var val))
-                    _lifePointToDuplicate = (byte) val;
+                    _lifePointToDuplicate = (int) val;
         }
 
         private void LifeForIdle_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
                 if (int.TryParse(LifeForIdle.Text, out var val))
-                    _lifePointIdle = (byte) val;
+                    _lifePointIdle = (int) val;
         }
 
         private void MaxLife_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)        
                 if (int.TryParse(MaxLife.Text, out var val))
-                    _maxLife = (byte) val;
+                    _maxLife = (int) val;
         }
 
         private void MinLife_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)     
                 if (int.TryParse(MinLife.Text, out var val))
-                    _minLife = (byte) val;
+                    _minLife = (int) val;
         }
 
         private void LifeCombo_KeyDown(object sender, KeyEventArgs e)
@@ -337,14 +336,14 @@ namespace WFA_Test1
         {
             if (e.KeyCode == Keys.Enter)   
                 if (int.TryParse(DupChance.Text, out var val))
-                    _duplicationChance = (byte) val;
+                    _duplicationChance = (int) val;
         }
         
         private void DupTimes_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
                 if (int.TryParse(DupTimes.Text, out var val))
-                    _timeOfDuplications = (byte) val;
+                    _timeOfDuplications = (int) val;
         }
 
         #endregion
@@ -355,21 +354,21 @@ namespace WFA_Test1
         {
             if (e.KeyCode == Keys.Enter)   
                 if (int.TryParse(MaxFertiliz.Text, out var val))
-                    _maxTimeBeforeFertilization = (byte) val;
+                    _maxTimeBeforeFertilization = (int) val;
         }
 
         private void MinFertiliz_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
                 if (int.TryParse(MinFertiliz.Text, out var val))
-                    _minTimeBeforeFertilization = (byte) val;
+                    _minTimeBeforeFertilization = (int) val;
         }
 
         private void FerChanc_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
                 if (int.TryParse(FerChanc.Text, out var val))
-                    _fertilizationChance = (byte) val;
+                    _fertilizationChance = (int) val;
         }
 
         #endregion

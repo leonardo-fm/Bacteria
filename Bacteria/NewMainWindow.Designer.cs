@@ -1,6 +1,6 @@
-﻿namespace WFA_Test1
+﻿namespace Bacteria
 {
-    partial class Form1
+    partial class NewMainWindow
     {
         /// <summary>
         ///  Required designer variable.
@@ -115,7 +115,7 @@
             // 
             // lblBactLifOpt
             // 
-            this.lblBactLifOpt.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
+            this.lblBactLifOpt.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((int) (0)));
             this.lblBactLifOpt.Location = new System.Drawing.Point(12, 528);
             this.lblBactLifOpt.Name = "lblBactLifOpt";
             this.lblBactLifOpt.Size = new System.Drawing.Size(132, 20);
@@ -124,7 +124,7 @@
             // 
             // label1
             // 
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((int) (0)));
             this.label1.Location = new System.Drawing.Point(302, 528);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(132, 20);
@@ -355,7 +355,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "Form1";
+            this.Name = "MainWindow";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             ((System.ComponentModel.ISupportInitialize) (this.Canvas)).EndInit();

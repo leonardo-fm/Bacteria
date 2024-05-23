@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WFA_Test1", "WFA_Test1\WFA_Test1.csproj", "{C0D6F652-03D3-445B-81D2-617907A76AD6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bacteria", "Bacteria\Bacteria.csproj", "{C0D6F652-03D3-445B-81D2-617907A76AD6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
