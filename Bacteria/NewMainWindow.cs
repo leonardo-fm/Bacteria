@@ -18,11 +18,11 @@ namespace Bacteria
         private int lifePointToDuplicate = 4;
         private int lifePointIdle = 2;
 
-        private int minLife = 3;
-        private int maxLife = 8;
+        private int minLife = 4;
+        private int maxLife = 10;
         private double lifeNearestCombo = 0.5;
 
-        private int duplicationChance = 40;
+        private int duplicationChance = 100;
         
         [Description("How many time a bacteria can replicate itselfe in a single iteration")]
         private int timeOfDuplications = 1;
@@ -121,13 +121,13 @@ namespace Bacteria
         private void Update_Tick(object sender, EventArgs e)
         {
             RunSimulation();
-            List<(int x, int y, Color color)> newColorVector = GenerateColorVector();
-
-            if (drawTask != null && !drawTask.IsCompleted)
-                drawTask.Wait();
-            drawTask = new Task(() => drawManager.DrawFrame(colorVector));
-            colorVector = newColorVector;
-            drawTask.Start();
+            // List<(int x, int y, Color color)> newColorVector = GenerateColorVector();
+            //
+            //  if (drawTask != null && !drawTask.IsCompleted)
+            //      drawTask.Wait();
+            //  drawTask = new Task(() => drawManager.DrawFrame(colorVector));
+            //  colorVector = newColorVector;
+            //  drawTask.Start();
             
             RunModifications();
             
@@ -155,7 +155,7 @@ namespace Bacteria
                         Fertilize(key.x, key.y);
                         continue;
                     case > 0:
-                        Duplicate(key.x, key.y);
+                        TryDuplicate(key.x, key.y);
                         continue;
                 }
             }
@@ -169,102 +169,71 @@ namespace Bacteria
             bacteriaSimulation[(x, y)].Value++;
         }
 
-        private void Duplicate(int x, int y)
+        private void TryDuplicate(int x, int y)
         {
-            int[,] nearestTiles = GetNearestTiles(x, y);
-            ShuffleTiles(nearestTiles);
-            int duplicationNumber = timeOfDuplications;
-
-            for (int i = 0; i < nearestTiles.GetLength(0); i++)
-            {
-                // nearestTiles[i, 0] = X, nearestTiles[i, 1] = Y
-                if (nearestTiles[i, 0] != -1 && nearestTiles[i, 1] != -1)
-                {
-                    if (bacteriaSimulation.TryGetValue((nearestTiles[i, 0], nearestTiles[i, 1]), out Tail tail) && tail.Value != 0)
-                        continue;
-                    if (rnd.Next(100) >= duplicationChance) continue;
-
-                    if (duplicationNumber == 0) continue;
-                    duplicationNumber -= 1;
-
-                    double lifeBonus = 1;
-                    for (int b = 0; b < nearestTiles.GetLength(0); b++)
-                    {
-                        if (nearestTiles[b, 0] != -1 && nearestTiles[b, 1] != -1)
-                        {
-                            if (bacteriaSimulation.TryGetValue((nearestTiles[i, 0], nearestTiles[i, 1]), out Tail tail2) && tail2.Value > 0)
-                                lifeBonus += lifeNearestCombo;
-                        }
-                    }
-
-                    int x2 = nearestTiles[i, 0];
-                    int y2 = nearestTiles[i, 1];
-                    actionsToPerform.TryAdd((x2, y2), () =>
-                    {
-                        bacteriaSimulation.TryAdd((x2, y2), new Tail((int)(rnd.Next(minLife, maxLife) * lifeBonus)));
-                        bitmap.SetPixel(x2, y2, moldColor);
-                    });
-
-                    bacteriaSimulation[(x, y)].Value -= lifePointToDuplicate;
-                }
-            }
-
-            bacteriaSimulation[(x, y)].Value -= lifePointIdle; // not always only if not duplicate
+            if (bacteriaSimulation[(x, y)].Value >= lifePointToDuplicate)
+                Duplicate(x, y);
+            else
+                bacteriaSimulation[(x, y)].Value -= lifePointIdle;
 
             if (bacteriaSimulation[(x, y)].Value <= 0)
                 Dead(x, y);
         }
-        
-        private int[,] GetNearestTiles(int x, int y)
+
+        private void Duplicate(int x, int y)
         {
-            int[,] initialTiles = new int[4, 2];
-            int fertilizationNumber = 0;
+            bool hasDuplicated = false;
+            List<(int, int)> nearestTiles = GetNearestTiles(x, y);
+            int duplicationNumber = timeOfDuplications;
+
+            int nearestTilesLength = nearestTiles.Count;
+            int randomShiftIndex = rnd.Next(0, nearestTilesLength);
             
-            initialTiles[0, 0] = x;
-            fertilizationNumber = y + 1 >= CANVAS_SIZE ? -1 : y + 1;
-            initialTiles[0, 1] = fertilizationNumber;
-
-            fertilizationNumber = x + 1 >= CANVAS_SIZE ? -1 : x + 1;
-            initialTiles[1, 0] = fertilizationNumber;
-            initialTiles[1, 1] = y;
-
-            initialTiles[2, 0] = x;
-            fertilizationNumber = y - 1 < 0 ? -1 : y - 1;
-            initialTiles[2, 1] = fertilizationNumber;
-
-            fertilizationNumber = x - 1 < 0 ? -1 : x - 1;
-            initialTiles[3, 0] = fertilizationNumber;
-            initialTiles[3, 1] = y;
-
-            return initialTiles;
-        }
-        
-        private void ShuffleTiles(int[,] tileToShuffle)
-        {
-            int initialIndex, finalIndex, tempX, tempY;
-            
-            int arrayLength = tileToShuffle.GetLength(0);
-            if(arrayLength == 1) return;
-            
-            for (int i = 0; i < arrayLength; i++)
+            for (int i = 0; i < nearestTiles.Count; i++)
             {
-                initialIndex = rnd.Next(0, arrayLength);
+                (int x, int y) currentTile = nearestTiles[(i + randomShiftIndex) % nearestTilesLength];
                 
-                do
-                {
-                    finalIndex = rnd.Next(0, arrayLength);
-                } 
-                while (finalIndex == initialIndex);
+                if (bacteriaSimulation.TryGetValue(currentTile, out Tail tail) && tail.Value != 0) continue;
+                if (rnd.Next(100) >= duplicationChance) continue;
 
-                tempX = tileToShuffle[initialIndex, 0];
-                tempY = tileToShuffle[initialIndex, 1];
-                
-                tileToShuffle[initialIndex, 0] = tileToShuffle[finalIndex, 0];
-                tileToShuffle[initialIndex, 1] = tileToShuffle[finalIndex, 1];
-                
-                tileToShuffle[finalIndex, 0] = tempX;
-                tileToShuffle[finalIndex, 1] = tempY;
+                double lifeBonus = 1;
+                for (int j = 0; j < nearestTilesLength; j++)
+                {
+                    if (bacteriaSimulation.TryGetValue(currentTile, out Tail tail2) && tail2.Value > 0)
+                        lifeBonus += lifeNearestCombo;
+                }
+
+                int tmpX = currentTile.x;
+                int tmpY = currentTile.y;
+                actionsToPerform.TryAdd((tmpX, tmpY), () =>
+                {
+                    bacteriaSimulation.TryAdd((tmpX, tmpY), new Tail((int)(rnd.Next(minLife, maxLife) * lifeBonus)));
+                    bitmap.SetPixel(tmpX, tmpY, moldColor);
+                });
+
+                hasDuplicated = true;
+                duplicationNumber -= 1;
+                if (duplicationNumber == 0) break;
             }
+            
+            if (hasDuplicated)
+                bacteriaSimulation[(x, y)].Value -= lifePointToDuplicate;
+        }
+
+        private List<(int, int)> GetNearestTiles(int x, int y)
+        {
+            List<(int, int)> nearTiles = new List<(int, int)>();
+            
+            if (y + 1 < CANVAS_SIZE)
+                nearTiles.Add((x, y + 1));
+            if (y - 1 > 0)
+                nearTiles.Add((x, y - 1));
+            if (x + 1 < CANVAS_SIZE)
+                nearTiles.Add((x + 1, y));
+            if (x - 1 > 0)
+                nearTiles.Add((x - 1, y));
+
+            return nearTiles;
         }
 
         private void Dead(int x, int y)
