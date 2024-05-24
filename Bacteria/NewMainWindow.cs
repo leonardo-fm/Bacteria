@@ -16,7 +16,7 @@ namespace Bacteria
         private const int CANVAS_SIZE = 600;
 
         private int lifePointToDuplicate = 4;
-        private int lifePointIdle = 2;
+        private int lifePointIdle = 5;
 
         private int minLife = 4;
         private int maxLife = 10;
@@ -64,7 +64,7 @@ namespace Bacteria
                 }
             }
 
-            public bool HasChanged { get; private set; }
+            public bool HasChanged { get; set; }
 
             public Tail(int value, bool hasChanged = true)
             {
@@ -121,13 +121,13 @@ namespace Bacteria
         private void Update_Tick(object sender, EventArgs e)
         {
             RunSimulation();
-            // List<(int x, int y, Color color)> newColorVector = GenerateColorVector();
-            //
-            //  if (drawTask != null && !drawTask.IsCompleted)
-            //      drawTask.Wait();
-            //  drawTask = new Task(() => drawManager.DrawFrame(colorVector));
-            //  colorVector = newColorVector;
-            //  drawTask.Start();
+            List<(int x, int y, Color color)> newColorVector = GenerateColorVector();
+            
+             if (drawTask != null && !drawTask.IsCompleted)
+                 drawTask.Wait();
+             drawTask = new Task(() => drawManager.DrawFrame(colorVector));
+             colorVector = newColorVector;
+             drawTask.Start();
             
             RunModifications();
             
@@ -137,7 +137,7 @@ namespace Bacteria
 
         private void RunModifications()
         {
-            foreach (((int x, int y), Action action) in actionsToPerform)
+            foreach ((_, Action action) in actionsToPerform)
                 action.Invoke();
             actionsToPerform.Clear();
         }
@@ -265,6 +265,8 @@ namespace Bacteria
                         break;
                     }
                 }
+
+                bacteriaSimulation[(key.x, key.y)].HasChanged = false;
             }
             
             return result;
