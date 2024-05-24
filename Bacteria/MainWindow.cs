@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Drawing;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Bacteria
@@ -41,9 +43,19 @@ namespace Bacteria
 
         public MainWindow()
         {
+            Text = "Main window";
             InitializeComponent();
             SetupBackGroundColor();
             SetupOptionsValue();
+            new Task(() =>
+            {
+                while (true)
+                {
+                    Thread.Sleep(1000);
+                    _fps = _frames;
+                    _frames = 0;
+                }
+            }).Start();
             Update.Start();
         }
 
@@ -74,11 +86,16 @@ namespace Bacteria
             FerChanc.Text = _fertilizationChance.ToString();
             
             NumOfBacterias.Text = _bacteriasNumber.ToString();
+            NumOfBacterias.Text = _fps.ToString();
         }
 
+        private int _fps = 0;
+        private int _frames = 0;
         private void Update_Tick(object sender, EventArgs e)
         {
             EvolveBacteria();
+            _frames++;
+            FPS.Text = _fps.ToString();
         }
 
         private int _bacteriasNumber = 0; 

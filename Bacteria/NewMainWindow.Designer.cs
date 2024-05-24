@@ -59,6 +59,7 @@
             this.DupTimes = new System.Windows.Forms.TextBox();
             this.label9 = new System.Windows.Forms.Label();
             this.NumOfBacterias = new System.Windows.Forms.Label();
+            this.FPS = new System.Windows.Forms.Label();
             this.LowGraph = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize) (this.Canvas)).BeginInit();
             ((System.ComponentModel.ISupportInitialize) (this.tbTimeSpeed)).BeginInit();
@@ -307,6 +308,14 @@
             this.NumOfBacterias.TabIndex = 28;
             this.NumOfBacterias.Text = "99999";
             // 
+            // FPS
+            // 
+            this.FPS.Location = new System.Drawing.Point(0, 0);
+            this.FPS.Name = "FPS";
+            this.FPS.Size = new System.Drawing.Size(27, 15);
+            this.FPS.TabIndex = 30;
+            this.FPS.Text = "9999";
+            // 
             // LowGraph
             // 
             this.LowGraph.Location = new System.Drawing.Point(290, 643);
@@ -325,6 +334,7 @@
             this.ClientSize = new System.Drawing.Size(509, 723);
             this.Controls.Add(this.LowGraph);
             this.Controls.Add(this.NumOfBacterias);
+            this.Controls.Add(this.FPS);
             this.Controls.Add(this.label9);
             this.Controls.Add(this.DupTimes);
             this.Controls.Add(this.label8);
@@ -368,6 +378,7 @@
 
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.Label NumOfBacterias;
+        private System.Windows.Forms.Label FPS;
 
         private System.Windows.Forms.TextBox DupTimes;
         private System.Windows.Forms.Label label8;

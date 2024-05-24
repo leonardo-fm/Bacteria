@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Bacteria
@@ -20,6 +24,8 @@ namespace Bacteria
         private double lifeNearestCombo = 0.5;
 
         private int duplicationChance = 40;
+        
+        [Description("How many time a bacteria can replicate itselfe in a single iteration")]
         private int timeOfDuplications = 1;
 
         private int maxTimeBeforeFertilization = 30;
@@ -27,6 +33,7 @@ namespace Bacteria
         private int fertilizationChance = 40;
         
         private bool lowGraphics = false;
+        private int bacteriasNumber = 0; 
 
         private readonly Color moldColor = Color.FromArgb(229, 245, 88);
         private readonly Color bgColor = Color.FromArgb(30, 30, 30);
@@ -35,18 +42,22 @@ namespace Bacteria
 
         private readonly Bitmap bitmap = new Bitmap(CANVAS_SIZE, CANVAS_SIZE);
         private readonly Random rnd = new Random();
+        
+        private int fps = 0;
+        private int frames = 0;
 
-        private int[,] bacteriasStatusOne = new int[CANVAS_SIZE, CANVAS_SIZE];
-        private int[,] bacteriasStatusTwo = new int[CANVAS_SIZE, CANVAS_SIZE];
-
+        private Dictionary<(int x, int y), int> bacteriaSimulation = new Dictionary<(int x, int y), int>();
+        
         public NewMainWindow()
         {
+            Text = "New main window";
             InitializeComponent();
             SetupBackGroundColor();
             SetupOptionsValue();
+            new Task(FPSCount).Start();
             Update.Start();
         }
-
+        
         private void SetupBackGroundColor()
         {
             for (int x = 0; x < CANVAS_SIZE_FOR_LOOP; x++)
@@ -75,104 +86,101 @@ namespace Bacteria
             
             NumOfBacterias.Text = bacteriasNumber.ToString();
         }
+        
+        private void FPSCount()
+        {
+
+            while (true)
+            {
+                Thread.Sleep(1000);
+                fps = frames;
+                frames = 0;
+            }
+        }
 
         private void Update_Tick(object sender, EventArgs e)
         {
             EvolveBacteria();
+            DrawFrame();
+            frames++;
+            FPS.Text = fps.ToString();
         }
 
-        private int bacteriasNumber = 0; 
+        private bool selectStatusOne = true;
         private void EvolveBacteria()
         {
-            bacteriasNumber = 0;
-            
             for (int x = 0; x < CANVAS_SIZE_FOR_LOOP; x++)
             {
                 for (int y = 0; y < CANVAS_SIZE_FOR_LOOP; y++)
                 {
-                    if (bacteriasStatusOne[x, y] == 0) continue;
-
-                    if (bacteriasStatusOne[x, y] < 0)
+                    if (bacteriaSimulation.TryGetValue((x, y), out int value))
                     {
-                        Fertilize(x, y);
-                        continue;
+                        switch (value)
+                        {
+                            case 0:
+                                continue;
+                            case < 0:
+                                Fertilize(x, y);
+                                continue;
+                            case > 0:
+                                Duplicate(x, y);
+                                continue;
+                        }
                     }
-
-                    Duplicate(x, y);
                 }
             }
 
             Canvas.Image = bitmap;
             NumOfBacterias.Text = bacteriasNumber.ToString();
-            
-            bacteriasStatusOne = (int[,]) bacteriasStatusTwo.Clone();
-            bacteriasStatusTwo = (int[,]) bacteriasStatusOne.Clone();
         }
-
+        
         private void Fertilize(int x, int y)
         {
             intHolder = rnd.Next(0, 100) < fertilizationChance ? 1 : 0;
-            bacteriasStatusTwo[x, y] += intHolder;
-
-            if(!lowGraphics)
-                bitmap.SetPixel(x, y, GetColorInterpolation(bacteriasStatusTwo[x, y]));
-        }
-
-        private Color GetColorInterpolation(int levelOfFertilization)
-        {
-            return Color.FromArgb
-            (
-                GetProportion(-maxTimeBeforeFertilization, levelOfFertilization, deadColorFrom.R - deadColorTo.R) + deadColorTo.R,
-                GetProportion(-maxTimeBeforeFertilization, levelOfFertilization, deadColorFrom.G - deadColorTo.G) + deadColorTo.G,
-                GetProportion(-maxTimeBeforeFertilization, levelOfFertilization, deadColorFrom.B - deadColorTo.B) + deadColorTo.B
-            );
-        }
-
-        private int GetProportion(double num1, double num2, double num3)
-        {
-            var result = num3 * (num2 / num1);
-            return (int) result;
+            bacteriaSimulation[(x, y)] += intHolder;
+            if (bacteriaSimulation[(x, y)] == 0)
+                bacteriaSimulation.Remove((x, y));
         }
 
         private void Duplicate(int x, int y)
         {
-            var nearestTiles = GetNearestTiles(x, y);
+            int[,] nearestTiles = GetNearestTiles(x, y);
             ShuffleTiles(nearestTiles);
-            var duplicationNumber = timeOfDuplications;
+            int duplicationNumber = timeOfDuplications;
 
-            for (var i = 0; i < nearestTiles.GetLength(0); i++)
+            for (int i = 0; i < nearestTiles.GetLength(0); i++)
             {
+                // nearestTiles[i, 0] = X, nearestTiles[i, 1] = Y
                 if (nearestTiles[i, 0] != -1 && nearestTiles[i, 1] != -1)
                 {
-                    if (bacteriasStatusOne[nearestTiles[i, 0], nearestTiles[i, 1]] != 0) continue;
+                    if (bacteriaSimulation.TryGetValue((nearestTiles[i, 0], nearestTiles[i, 1]), out int value) && value != 0)
+                        continue;
                     if (rnd.Next(100) >= duplicationChance) continue;
 
-                    if(duplicationNumber == 0) continue;
+                    if (duplicationNumber == 0) continue;
                     duplicationNumber -= 1;
-                    
+
                     double lifeBonus = 1;
                     for (int b = 0; b < nearestTiles.GetLength(0); b++)
                     {
                         if (nearestTiles[b, 0] != -1 && nearestTiles[b, 1] != -1)
                         {
-                            if (bacteriasStatusOne[nearestTiles[b, 0], nearestTiles[b, 1]] > 0)
+                            if (bacteriaSimulation.TryGetValue((nearestTiles[i, 0], nearestTiles[i, 1]), out int value2) && value2 > 0)
                                 lifeBonus += lifeNearestCombo;
                         }
                     }
 
-                    bacteriasStatusTwo[nearestTiles[i, 0], nearestTiles[i, 1]] =
-                        (int) (rnd.Next(minLife, maxLife) * lifeBonus);
+                    bacteriaSimulation.Add((nearestTiles[i, 0], nearestTiles[i, 1]), (int)(rnd.Next(minLife, maxLife) * lifeBonus));
 
                     bacteriasNumber++;
 
-                    bitmap.SetPixel(nearestTiles[i, 0], nearestTiles[i, 1], moldColor);
-                    bacteriasStatusTwo[x, y] -= lifePointToDuplicate;
+                    bacteriaSimulation[(x, y)] -= lifePointToDuplicate;
                 }
             }
 
-            bacteriasStatusTwo[x, y] -= lifePointIdle;
+            bacteriaSimulation[(x, y)] -= lifePointIdle; // not always only if not duplicate
 
-            if (bacteriasStatusTwo[x, y] <= 0)
+            if (bacteriaSimulation[(x, y)] <= 0)
                 Dead(x, y);
         }
 
@@ -234,20 +242,62 @@ namespace Bacteria
 
         private void Dead(int x, int y)
         {
-            bacteriasStatusTwo[x, y] = - rnd.Next(minTimeBeforeFertilization, maxTimeBeforeFertilization);
-            bitmap.SetPixel(x, y, deadColorTo);
+            bacteriaSimulation[(x, y)] = -rnd.Next(minTimeBeforeFertilization, maxTimeBeforeFertilization);
         }
         
+        private void DrawFrame()
+        {
+            for (int x = 0; x < CANVAS_SIZE_FOR_LOOP; x++)
+            {
+                for (int y = 0; y < CANVAS_SIZE_FOR_LOOP; y++)
+                {
+                    if (bacteriaSimulation.TryGetValue((x, y), out int value))
+                    {
+                        switch (value)
+                        {
+                            case 0:
+                                bitmap.SetPixel(x, y, bgColor);
+                                continue;
+                            case > 0:
+                                bitmap.SetPixel(x, y, moldColor);
+                                break;
+                            default:
+                            {
+                                if (!lowGraphics)
+                                    bitmap.SetPixel(x, y, GetColorInterpolation(value));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        private Color GetColorInterpolation(int levelOfFertilization)
+        {
+            return Color.FromArgb
+            (
+                GetProportion(-maxTimeBeforeFertilization, levelOfFertilization, deadColorFrom.R - deadColorTo.R) + deadColorTo.R,
+                GetProportion(-maxTimeBeforeFertilization, levelOfFertilization, deadColorFrom.G - deadColorTo.G) + deadColorTo.G,
+                GetProportion(-maxTimeBeforeFertilization, levelOfFertilization, deadColorFrom.B - deadColorTo.B) + deadColorTo.B
+            );
+        }
 
+        private int GetProportion(double num1, double num2, double num3)
+        {
+            double result = num3 * (num2 / num1);
+            return (int) result;
+        }
+        
         #region Comands
 
         private void Canvas_Click(object sender, EventArgs e)
         {
-            var positionX = MousePosition.X - Left - 8;
-            var positionY = MousePosition.Y - Top - 31;
+            int positionX = MousePosition.X - Left - 8;
+            int positionY = MousePosition.Y - Top - 31;
 
             if (positionX >= 0 && positionX < CANVAS_SIZE && positionY >= 0 && positionY < CANVAS_SIZE)
-                bacteriasStatusOne[positionX, positionY] = rnd.Next(minLife, maxLife);
+                bacteriaSimulation.Add((positionX, positionY), rnd.Next(minLife, maxLife));
         }
 
         private void btnReset_Click(object sender, EventArgs e)
@@ -255,8 +305,7 @@ namespace Bacteria
             if (gameIsStopped) return;
 
             Update.Stop();
-            bacteriasStatusOne = new int[CANVAS_SIZE, CANVAS_SIZE];
-            bacteriasStatusTwo = (int[,]) bacteriasStatusOne.Clone();
+            bacteriaSimulation.Clear();
             SetupBackGroundColor();
             Update.Start();
 
@@ -300,49 +349,49 @@ namespace Bacteria
         private void LifeForDuplication_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
-                if (int.TryParse(LifeForDuplication.Text, out var val))
+                if (int.TryParse(LifeForDuplication.Text, out int val))
                     lifePointToDuplicate = val;
         }
 
         private void LifeForIdle_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
-                if (int.TryParse(LifeForIdle.Text, out var val))
+                if (int.TryParse(LifeForIdle.Text, out int val))
                     lifePointIdle = val;
         }
 
         private void MaxLife_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)        
-                if (int.TryParse(MaxLife.Text, out var val))
+                if (int.TryParse(MaxLife.Text, out int val))
                     maxLife = val;
         }
 
         private void MinLife_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)     
-                if (int.TryParse(MinLife.Text, out var val))
+                if (int.TryParse(MinLife.Text, out int val))
                     minLife = val;
         }
 
         private void LifeCombo_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)     
-                if (int.TryParse(LifeCombo.Text, out var val))
+                if (int.TryParse(LifeCombo.Text, out int val))
                     lifeNearestCombo = val;
         }
 
         private void DupChance_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
-                if (int.TryParse(DupChance.Text, out var val))
+                if (int.TryParse(DupChance.Text, out int val))
                     duplicationChance = val;
         }
         
         private void DupTimes_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
-                if (int.TryParse(DupTimes.Text, out var val))
+                if (int.TryParse(DupTimes.Text, out int val))
                     timeOfDuplications = val;
         }
 
@@ -353,21 +402,21 @@ namespace Bacteria
         private void MaxFertiliz_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
-                if (int.TryParse(MaxFertiliz.Text, out var val))
+                if (int.TryParse(MaxFertiliz.Text, out int val))
                     maxTimeBeforeFertilization = val;
         }
 
         private void MinFertiliz_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
-                if (int.TryParse(MinFertiliz.Text, out var val))
+                if (int.TryParse(MinFertiliz.Text, out int val))
                     minTimeBeforeFertilization = val;
         }
 
         private void FerChanc_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)   
-                if (int.TryParse(FerChanc.Text, out var val))
+                if (int.TryParse(FerChanc.Text, out int val))
                     fertilizationChance = val;
         }
 
