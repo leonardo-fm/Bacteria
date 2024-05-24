@@ -48,6 +48,8 @@ namespace Bacteria
         private Dictionary<(int x, int y), Tail> bacteriaSimulation = new Dictionary<(int x, int y), Tail>();
         private Dictionary<(int x, int y), Action> actionsToPerform = new Dictionary<(int x, int y), Action>();
 
+        private static List<(int x, int y, Color color)> colorVector = new List<(int x, int y, Color color)>();
+        
         private class Tail
         {
             private int value;
@@ -70,29 +72,23 @@ namespace Bacteria
                 HasChanged = hasChanged;
             }
         }
-        
+
+        private DrawManager drawManager;
         public NewMainWindow()
         {
             Text = "New main window";
+            
             InitializeComponent();
-            SetupBackGroundColor();
             SetupOptionsValue();
+            
+            drawManager = new DrawManager(CANVAS_SIZE, CANVAS_SIZE, bgColor);
+            Canvas.Image = drawManager.GetBitmap();
+            drawManager.OnFrameDrawn += (from, frame) => Canvas.Image = frame;
+            
             new Task(FPSCount).Start();
             Update.Start();
         }
         
-        private void SetupBackGroundColor()
-        {
-            for (int x = 0; x < CANVAS_SIZE - 1; x++)
-            {
-                for (int y = 0; y < CANVAS_SIZE - 1; y++)
-                {
-                    bitmap.SetPixel(x, y, bgColor);
-                }
-            }
-
-            Canvas.Image = bitmap;
-        }
         
         private void SetupOptionsValue()
         {
@@ -120,22 +116,34 @@ namespace Bacteria
                 frames = 0;
             }
         }
-
+        
+        private Task drawTask;
         private void Update_Tick(object sender, EventArgs e)
         {
             RunSimulation();
-            DrawFrame();
-            foreach (((int x, int y), Action action) in actionsToPerform)
-                action.Invoke();
-            actionsToPerform.Clear();
+            List<(int x, int y, Color color)> newColorVector = GenerateColorVector();
+
+            if (drawTask != null && !drawTask.IsCompleted)
+                drawTask.Wait();
+            drawTask = new Task(() => drawManager.DrawFrame(colorVector));
+            colorVector = newColorVector;
+            drawTask.Start();
+            
+            RunModifications();
+            
             frames++;
             FPS.Text = fps.ToString();
         }
 
-        private bool selectStatusOne = true;
+        private void RunModifications()
+        {
+            foreach (((int x, int y), Action action) in actionsToPerform)
+                action.Invoke();
+            actionsToPerform.Clear();
+        }
+
         private void RunSimulation()
         {
-            
             foreach (((int x, int y) key, Tail tail) in bacteriaSimulation)
             {
                 switch (tail.Value)
@@ -152,9 +160,7 @@ namespace Bacteria
                 }
             }
             
-            Canvas.Image = bitmap;
             NumOfBacterias.Text = bacteriasNumber.ToString();
-            
         }
         
         private void Fertilize(int x, int y)
@@ -208,12 +214,12 @@ namespace Bacteria
             if (bacteriaSimulation[(x, y)].Value <= 0)
                 Dead(x, y);
         }
-
-        private int fertilizationNumber;
-        int[,] initialTiles = new int[4, 2];
-
+        
         private int[,] GetNearestTiles(int x, int y)
         {
+            int[,] initialTiles = new int[4, 2];
+            int fertilizationNumber = 0;
+            
             initialTiles[0, 0] = x;
             fertilizationNumber = y + 1 >= CANVAS_SIZE ? -1 : y + 1;
             initialTiles[0, 1] = fertilizationNumber;
@@ -233,14 +239,10 @@ namespace Bacteria
             return initialTiles;
         }
         
-        int initialIndex;
-        int finalIndex;
-
-        int tempX;
-        int tempY;
-        
         private void ShuffleTiles(int[,] tileToShuffle)
         {
+            int initialIndex, finalIndex, tempX, tempY;
+            
             int arrayLength = tileToShuffle.GetLength(0);
             if(arrayLength == 1) return;
             
@@ -269,30 +271,34 @@ namespace Bacteria
         {
             bacteriaSimulation[(x, y)].Value = -rnd.Next(minTimeBeforeFertilization, maxTimeBeforeFertilization);
         }
-        
-        private void DrawFrame()
+
+        private List<(int x, int y, Color color)> GenerateColorVector()
         {
+            List<(int x, int y, Color color)> result = [];
+
             foreach (((int x, int y) key, Tail tail) in bacteriaSimulation)
             {
-                if (!tail.HasChanged) return;
+                if (!tail.HasChanged) continue;
                 switch (tail.Value)
                 {
                     case 0:
-                        bitmap.SetPixel(key.x, key.y, bgColor);
+                        result.Add((key.x, key.y, bgColor));
                         continue;
                     case > 0:
-                        bitmap.SetPixel(key.x, key.y, moldColor);
+                        result.Add((key.x, key.y, moldColor));
                         break;
                     default:
                     {
                         if (!lowGraphics)
-                            bitmap.SetPixel(key.x, key.y, GetColorInterpolation(tail.Value));
+                            result.Add((key.x, key.y, GetColorInterpolation(tail.Value)));
                         else
-                            bitmap.SetPixel(key.x, key.y, bgColor);
+                            result.Add((key.x, key.y, bgColor));
                         break;
                     }
                 }
             }
+            
+            return result;
         }
         
         private Color GetColorInterpolation(int levelOfFertilization)
@@ -328,7 +334,7 @@ namespace Bacteria
 
             Update.Stop();
             bacteriaSimulation.Clear();
-            SetupBackGroundColor();
+            drawManager.ResetBitmap();
             Update.Start();
 
             Console.WriteLine("--- Reset ---");
@@ -360,8 +366,8 @@ namespace Bacteria
         private void LowGraph_CheckedChanged(object sender, EventArgs e)
         {
             lowGraphics = LowGraph.Checked;
-            if(lowGraphics)
-                SetupBackGroundColor();
+            if (lowGraphics)
+                drawManager.ResetBitmap();
         }
 
         #endregion
